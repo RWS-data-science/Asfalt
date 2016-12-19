@@ -113,6 +113,8 @@ ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_L3)
   stat_smooth()+ggtitle("Average daily traffic intensity cat L3")+
   annotate("text", x = 9000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$Inw2014_Werkdag_etmaal_L3,use = "pairwise.complete.obs"),2)))
 
+#test
+
 
 ```
 
