@@ -1,5 +1,3 @@
 # Asfalt
 
-test
-
-This is a test
+This a shared repository for the Asfalt project
