@@ -110,8 +110,11 @@ r.int.schade.train = r.int.schade[! r.samp$jaar == 2015,]
 # write.csv(r.int.schade.train, file="r.int.schade.train.csv")
 
 
+```
 
+Now we prepare the formula and train/testsets for the ML algorithms.
 
+```{r prep}
 xnam <- colnames(r.samp)
 xnam<- xnam[! xnam %in% c("verloop","WEG","BAAN","VAN","TOT","AANLEGDATUM","INTERVENTIEJAAR_RAF","jr.tot.interventie","afst.obst",
                           "BUITENSTE_RIJSTROOK","jaar","WEG.BAAN.STROOK.VAN","vervangen","vervangen.leeftijd","WEG.BAAN.STROOK.VAN.JAAR","eerste.schade",
@@ -133,7 +136,11 @@ library(caret)
 #test <- r_2014[-train_ind, ]
 train<- r.samp[r.samp$jaar != 2013,]
 test<- r.samp[r.samp$jaar == 2013,]
+```
 
+Decision tree
+
+```{r tree}
 tree<- rpart(fmla,train,method = "class",)
 #png("plots/tree_2012.png",width = 1000,height = 1000,res=100)
 rpart.plot(tree,cex=0.7,yesno=T,type=2,compress=T)
@@ -145,8 +152,12 @@ rpart.plot(tree,cex=0.7,yesno=T,type=2,compress=T)
 test$pred_tree<- predict(tree,test,typ="class")
 
 confusionMatrix(test$schade,test$pred_tree)
+```
 
 
+
+Random forest
+```{r rf}
 ####RF
 library(randomForest)
 
@@ -171,6 +182,10 @@ varImpPlot(rf)
 summary(rf)
 
 
+```
+
+Neural net (werkt nog niet goed)
+```{r nnet}
 ###nnet
 library(neuralnet)
 library(nnet)
@@ -190,7 +205,11 @@ plot(nnet)
 varImpPlot(rf)
 summary(rf)
 
+```
 
+SVM (werkt nog niet goed)
+
+```{r svm}
 ####svm
 library(e1071)
 
@@ -200,6 +219,10 @@ test$svm_res<- predict(svm,test,na.action = na.pass)
 
 confusionMatrix(test$schade,test$svm_res)
 summary(svm)
+
+```
+
+
 
 
 
