@@ -1,0 +1,118 @@
+---
+title: "Factors influencing the year after which the first damage is observed"
+author: "Martijn Koole"
+date: "19 december 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE,cache=T}
+knitr::opts_chunk$set(echo = TRUE)
+load("data/r_int_tot.RData")
+r_eerste_schade<- r.int.tot[r.int.tot$eerste.schade==1,]
+
+```
+
+## Years to first damage
+
+The figure below shows the distribution of years after which the first raveling damage of pavement layers is observed. Each observation corresponds with a 100 m pavement section.
+
+```{r age,cache=T,warning=F}
+library(ggplot2)
+ggplot(r_eerste_schade,aes(x=eerste.schade.leeftijd))+geom_histogram(col="black",fill="cyan4",binwidth = 1)+
+  xlab("Age (y)")+ylab("Number of pavement sections")+ggtitle("Years to first damage")
+```
+
+## Per district and geographically
+
+
+```{r district,cache=T}
+ggplot(r_eerste_schade,aes(x=eerste.schade.leeftijd))+geom_histogram(col="black",fill="cyan4",binwidth = 1)+
+  xlab("Age (y)")+ylab("Number of pavement sections")+ggtitle("Years to first damage per district")+facet_wrap(~district)
+
+
+##Plot leeftijden op kaart
+library(meteo)
+library(rgdal)
+data("NLpol")
+
+NLpol_f= fortify(NLpol)
+coordinates(NLpol_f)<- ~long+lat
+proj4string(NLpol_f)<- CRS("+init=epsg:4326")
+proj_rd<-  CRS("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +no_defs")
+NLpol_f<- spTransform(NLpol_f,proj_rd)
+NLpol_f<- as.data.frame(NLpol_f)
+
+
+ggplot(NLpol_f, aes(x = long, y = lat,group=group))+geom_polygon(colour="black",fill="white")+
+  geom_point(data=r_eerste_schade,aes(x=x,y=y,group=eerste.schade.leeftijd,colour=eerste.schade.leeftijd,na.rm=T),size=0.8)+
+  scale_colour_gradientn(colours=c("red","orange","yellow","green"),limits=c(1,15),name="Age of first damage")
+
+
+```
+
+## Years to first damage vs other variables
+```{r variables,warning=F}
+library(ggplot2)
+##boxplots van leeftijden per bodemgebruik
+d<- ggplot(r_eerste_schade,aes(x=bodem))+geom_bar()
+d1<- ggplot(r_eerste_schade,aes(x=bodem,y=eerste.schade.leeftijd,fill=bodem))+geom_boxplot()+ylab("Age of first damage (y)")+guides(fill=F)
+
+
+library(gridExtra)
+
+grid.arrange(d1,d)
+
+
+
+####asfalttype####
+
+
+a<-ggplot(r_eerste_schade,aes(x=DEKLAAGSOORT,y=eerste.schade.leeftijd,fill=DEKLAAGSOORT))+geom_boxplot()+ylab("Age first damage")+guides(fill=F)+
+  xlab("Pavement type")
+
+b<- ggplot(r_eerste_schade,aes(x=DEKLAAGSOORT))+geom_bar()+ylab("Number of pavement sections")+
+  xlab("Pavement type")
+
+grid.arrange(a,b)
+
+
+#####wegcategorie###
+
+ggplot(r_eerste_schade,aes(x=cat,y=eerste.schade.leeftijd,fill=cat))+geom_boxplot()+ylab("Age first damage")+guides(fill=F)+  xlab("Network category")
+
+
+
+
+######bermgegevens#####
+ggplot(r_eerste_schade,aes(x=bermtype,y=eerste.schade.leeftijd,fill=bermtype))+geom_boxplot()+guides(fill=F)+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+theme(axis.text.x=element_text(angle = 30, hjust = 1))
+
+
+#####kunstwerken######
+
+
+f1<- ggplot(r_eerste_schade,aes(x=kunstwerk))+geom_bar()+ xlab("")
+f2<- ggplot(r_eerste_schade,aes(x=kunstwerk,y=eerste.schade.leeftijd,fill=kunstwerk))+geom_boxplot()+theme(axis.text.x=element_text(angle = 30, hjust = 1))+
+   guides(fill=FALSE) + xlab("")
+
+
+grid.arrange(f1,f2,heights=c(0.3,0.7))
+
+
+
+##INWEVA2014
+
+#gem
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_al))+ geom_point(alpha=0.6,size=0.8,col="cyan4")+
+  stat_smooth()+ggtitle("Average daily traffic intensity all categories")+
+  annotate("text", x = 90000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$Inw2014_Werkdag_etmaal_al,use = "pairwise.complete.obs"),2)))
+
+
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_L3))+ geom_point(alpha=0.4,size=0.8,col="orange")+
+#geom_bar(stat="identity",fill="orange",alpha=0.2)
+  stat_smooth()+ggtitle("Average daily traffic intensity cat L3")+
+  annotate("text", x = 9000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$Inw2014_Werkdag_etmaal_L3,use = "pairwise.complete.obs"),2)))
+
+
+```
+

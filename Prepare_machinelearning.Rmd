@@ -1,0 +1,209 @@
+---
+title: "Prepare for machine learning"
+author: "Martijn Koole"
+date: "19 december 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r script}
+
+#This routines takes the rafelings_data combined with the additional datasets and generates csv files for WEKA Learning
+# It removes all NA values, identifying columns and some columns with many NA-values to save entries.
+
+load(file= "data/r_int_sample.RData")
+
+r.int.sample<-r.int.sample[r.int.sample$WEG != 99,]
+r.samp<- r.int.sample
+
+#OVERBODIG
+#r.samp$WEG = NULL
+r.samp$BAAN = NULL
+#r.samp$STROOK = NULL
+r.samp$VAN = NULL
+r.samp$TOT= NULL
+r.samp$AANLEGDATUM = NULL
+r.samp$BUITENSTE_RIJSTROOK = NULL
+r.samp$WEG.VAN.BAAN = NULL
+r.samp$WEG.VAN.BAAN.JAAR = NULL
+r.samp$WEG.VAN.BAAN = NULL
+r.samp$WEG.BAAN.STROOK.VAN = NULL
+r.samp$WEG.BAAN.STROOK.VAN.JAAR = NULL
+
+#INDENTIFICEREND (Voor jr.interventie.raf)
+r.samp$INTERVENTIEJAAR_RAF = NULL
+r.samp$vervangen = NULL
+r.samp$vervangen.leeftijd = NULL
+r.samp$verdacht = NULL
+r.samp$vvr = NULL
+r.samp$ldr.verw = NULL
+r.samp$verschil_planjaar = NULL
+r.samp$jr.tot.interventie = NULL
+r.samp$eerste.schade = NULL
+r.samp$eerste.schade.leeftijd = NULL
+#Mogelijk identificerend
+r.samp$MPD_links2015 = NULL
+r.samp$MPD_rechts2015 = NULL
+
+# Many NA's weak prediction
+r.samp$WVK_ID = NULL
+r.samp$afst.obst = NULL
+
+# TOO Many NA's
+r.samp$aanleg.FG  = NULL
+r.samp$aanleg.FHX = NULL
+r.samp$aanleg.TG  = NULL
+r.samp$aanleg.TX  = NULL
+r.samp$aanleg.TN  = NULL
+r.samp$aanleg.RH  = NULL
+
+r.samp$MPD_midden2015  = NULL
+r.samp$stroefheid2015  = NULL
+r.samp$langsonvlakheid2015  = NULL
+r.samp$dwarsonvlakheid2015  = NULL
+
+r.samp$boogstraal.mean  = NULL
+r.samp$boogstraal.min  = NULL
+r.samp$boogstraal.max  = NULL
+
+r.samp$asdruk1_mean  = NULL
+r.samp$asdruk1_P_50  = NULL
+r.samp$asdruk1_P_84  = NULL
+r.samp$asdruk2_mean = NULL
+r.samp$asdruk2_P_50  = NULL
+r.samp$asdruk2_P_84  = NULL
+
+r.samp$kunstwerk = NULL
+r.samp$verloop = NULL
+
+# HERE we make two different sets to train on
+# ONE set for verloop and one set for jr.tot.interventie 
+r.int.verloop = r.samp
+r.int.schade = r.samp
+r.int.schade$verloop = NULL
+r.int.verloop$jr.tot.interventie = NULL
+
+r.int.verloop = r.int.verloop[complete.cases(r.int.verloop),]
+r.int.schade = r.int.schade[complete.cases(r.int.schade),]
+
+#prepare train/testset
+r.int.verloop.test = r.int.verloop[r.samp$jaar == 2015,]
+r.int.verloop.train = r.int.verloop[! r.samp$jaar == 2015,]
+r.int.schade.test = r.int.schade[r.samp$jaar == 2015,]
+r.int.schade.train = r.int.schade[! r.samp$jaar == 2015,]
+
+
+
+# #write them to file
+# write.csv(r.int.verloop.test, file="r.int.verloop.test.csv")
+# write.csv(r.int.verloop.train, file="r.int.verloop.train.csv")
+# write.csv(r.int.schade.test, file="r.int.schade.test.csv")
+# write.csv(r.int.schade.train, file="r.int.schade.train.csv")
+
+
+
+
+xnam <- colnames(r.samp)
+xnam<- xnam[! xnam %in% c("verloop","WEG","BAAN","VAN","TOT","AANLEGDATUM","INTERVENTIEJAAR_RAF","jr.tot.interventie","afst.obst",
+                          "BUITENSTE_RIJSTROOK","jaar","WEG.BAAN.STROOK.VAN","vervangen","vervangen.leeftijd","WEG.BAAN.STROOK.VAN.JAAR","eerste.schade",
+                          "verdacht","vvr","ldr.verw","WEG.VAN.BAAN","x","y", "WVK_ID","district", "dienst","schade","WEG.VAN.BAAN.JAAR",
+                          "MPD_midden2015","MPD_rechts2015","MPD_links2015","deklaagsoort.lag","vervangen.leeftijd",
+                          "asdruk1_mean","asdruk1_P_50","asdruk1_P_84","asdruk2_mean","asdruk2_P_50","asdruk2_P_84",
+                          "eerste.schade","eerste.schade.leeftijd","verschil_planjaar","verloop",
+                          "aanleg.FG","aanleg.FHX","aanleg.TG","aanleg.TX","aanleg.TN","stroefheid2015",
+                          "langsonvlakheid2015","dwarsonvlakheid2015")]
+fmla <- as.formula(paste("schade ~ ", paste(xnam, collapse= "+")))
+
+
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+
+#train <- r_2014[train_ind, ]
+#test <- r_2014[-train_ind, ]
+train<- r.samp[r.samp$jaar != 2013,]
+test<- r.samp[r.samp$jaar == 2013,]
+
+tree<- rpart(fmla,train,method = "class",)
+#png("plots/tree_2012.png",width = 1000,height = 1000,res=100)
+rpart.plot(tree,cex=0.7,yesno=T,type=2,compress=T)
+#dev.off()
+#summary(tree)
+#library(rattle)
+#fancyRpartPlot(tree_2014,cex=0.5) 
+
+test$pred_tree<- predict(tree,test,typ="class")
+
+confusionMatrix(test$schade,test$pred_tree)
+
+
+####RF
+library(randomForest)
+
+#train$schade<- ifelse(train$schade == 1, "schade",ifelse(train$schade == 0, "geen schade",NA))
+#train$schade<- as.factor(train$schade)
+
+#na_count <-sapply(train, function(y) sum(is.na(y)))
+
+#na_count/nrow(train)
+
+train$schade<- as.factor(train$schade)
+
+rf<- randomForest(fmla,data=train,ntree=100,importance=T,na.action = na.omit)
+
+
+test$rf_res<- predict(rf,test)
+
+confusionMatrix(test$schade,test$rf_res)
+
+plot(rf)
+varImpPlot(rf)
+summary(rf)
+
+
+###nnet
+library(neuralnet)
+library(nnet)
+
+#train.n<-train;train.n$schade<- as.factor(train.n$schade)
+#test.n<-test;test.n$schade<- as.factor(test.n$schade)
+
+nnet<- nnet(fmla,data=train,size=10,decay = 0.001,
+            maxit = 100)
+
+test$nnet_res<- predict(nnet,test,typ="class")
+
+confusionMatrix(test$schade,test$nnet_res)
+
+table(test$nnet_res)
+plot(nnet)
+varImpPlot(rf)
+summary(rf)
+
+
+####svm
+library(e1071)
+
+svm <- svm(fmla, train)#, probability=TRUE, cost = 100, gamma = 1)
+
+test$svm_res<- predict(svm,test,na.action = na.pass)
+
+confusionMatrix(test$schade,test$svm_res)
+summary(svm)
+
+
+
+
+
+
+```
