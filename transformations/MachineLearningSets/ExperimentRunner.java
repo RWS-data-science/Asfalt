@@ -40,7 +40,7 @@ public class ExperimentRunner
 	 String path = "..\\..\\data\\output\\learning\\arff\\";
 	 String[] concepts = {"sch","ver"};
 	 String[] years = {"2012","2013","2011", "2014", "2015"};
-	 String[] variants = { "resampled", "normal"};
+	 String[] variants = {"normal", "resampled"};
 	 
 	 DataSource trainDataSource;
 	 DataSource testDataSource;
@@ -124,6 +124,7 @@ public class ExperimentRunner
 				 Test.evaluateModel(kNN, knnTestData);
 				 writer.println(resultLine("1NN xy testdata", concepts[i], variants[j], years[k],Test.pctCorrect(), Test.kappa(), Test.meanAbsoluteError(), Test.rootMeanSquaredError() ));
 				 System.out.print(".");
+
 				 
 				 kNN.setOptions(weka.core.Utils.splitOptions("-K 3 -W 0"));
 				 kNN.buildClassifier(knnTrainData);

@@ -1,0 +1,38 @@
+---
+title: "Evaluate Machine learning models"
+author: "Martijn Koole"
+date: "2 januari 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache=T)
+```
+
+## kNN
+Er speelt een sterk lokaal effect in het schadebeeld. Dit kun illustreren door de resultaten van 1NN 33% holdout normal (leren door alleen te kijken naar wegstukjes die dichtbij zijn in het zelfde jaar) te plotten tegen ZeroR normal (No information).
+
+Dit speelt sterk op hectometer niveau. Dit kun je illustreren door de resultaten van 1NN 33% holdout normal te plotten tegen 1NN holdout resampled. 
+
+Ik denk dat je dat makkelijk allemaal in een plaatje kan doen. Er zit meer informatie in deze learners verborgen, zoals bijvoorbeeld een effect dat over de jaren heengaat, maar voor het grote verhaal lijkt mij dit een prima conclusie. 
+```{r knn}
+weka.res<- read.csv("data/WekaResults.ms.csv",sep=";",dec=",")
+
+library(ggplot2)
+sub1<- weka.res[weka.res$Model %in% c("1NN xy 10 33% holdout", "ZeroR") & weka.res$Concept == "sch",]
+
+ggplot(sub1,aes(x=Model,y=Percentage.Correct,fill=Model))+geom_boxplot()+facet_wrap(~Variant)
+```
+
+# Tree & Naive Bayes
+Er zitten tweedeorde effecten in het schadebeeld. Dit kun je illustreren door de resultaten van J48 GPO Baseline Resampled te plotten tegen Naive Bayes on all features Resampled. De eerste kijkt alleen naar leeftijd en deklaagsoort, de ander kijkt naar alles, maar combineert geen effecten. Ik zou beide afbeelden tegen de ZeroRs (Resampled in dit geval).
+
+De extra data levert betere informatie op over het schadebeeld. Dit kun je illustreren door de SMO resampled (SVM over alle features) te plotten tegen J48 GPO Baseline. (ook tegen de vergelijkbare ZeroR). Aantekening daarbij is dat het verschil niet heel groot is. Je zou ook kunnen zeggen dat de baseline best een goede regel is. Ik zou sowieso ook de beste correlaties een eigen grafiek geven (zoals Freeze_Count_1). 
+
+```{r tree}
+sub2<- weka.res[weka.res$Model %in% c("Bayes on all features","J48 GPO baseline C 0,05","SMO", "ZeroR") & weka.res$Concept == "sch" & weka.res$Variant == "resampled",]
+
+ggplot(sub2,aes(x=Model,y=Percentage.Correct,fill=Model))+geom_boxplot()+guides(fill=FALSE)
+```
+
+
