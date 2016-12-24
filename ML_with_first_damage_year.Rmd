@@ -1,37 +1,26 @@
 ---
-title: "Prepare for machine learning"
+title: "Aggregate data per segment"
 author: "Martijn Koole"
-date: "19 december 2016"
+date: "12/23/2016"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,cache=T)
 ```
 
-## R Markdown
+## Test
+First test with only the years in which the first damage is observed
+```{r aggregate}
+load("data/r_int_tot.RData")
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r script}
-
-#This routines takes the rafelings_data combined with the additional datasets and generates csv files for WEKA Learning
-# It removes all NA values, identifying columns and some columns with many NA-values to save entries.
-
-load(file= "data/r_int_sample.RData")
+r.first.damage<- r.int.tot[r.int.tot$eerste.schade == 1,]
 
 source("prepare.R")
+r.first.damage<- prepare(r.first.damage)
 
-r.samp<- prepare(r.int.sample)
 
-```
-
-Now we prepare the formula and train/testsets for the ML algorithms.
-
-```{r prep}
-xnam <- colnames(r.samp)
+xnam <- colnames(r.first.damage)
 xnam<- xnam[! xnam %in% c("verloop","WEG","BAAN","VAN","TOT","AANLEGDATUM","INTERVENTIEJAAR_RAF","jr.tot.interventie","afst.obst",
                           "BUITENSTE_RIJSTROOK","jaar","WEG.BAAN.STROOK.VAN","vervangen","vervangen.leeftijd","WEG.BAAN.STROOK.VAN.JAAR","eerste.schade",
                           "verdacht","vvr","ldr.verw","WEG.VAN.BAAN","x","y", "WVK_ID","district", "dienst","schade","WEG.VAN.BAAN.JAAR",
@@ -48,12 +37,10 @@ library(rpart)
 library(rpart.plot)
 library(caret)
 
-#train <- r_2014[train_ind, ]
-#test <- r_2014[-train_ind, ]
-train<- r.samp[r.samp$jaar != 2013,]
-test<- r.samp[r.samp$jaar == 2013,]
-```
+train<- r.first.damage[r.first.damage$jaar != 2013,]
+test<- r.first.damage[r.first.damage$jaar == 2014,]
 
+```
 Decision tree
 
 ```{r tree}
@@ -100,49 +87,7 @@ summary(rf)
 
 ```
 
-Neural net (werkt nog niet goed)
-```{r nnet}
-###nnet
-library(neuralnet)
-library(nnet)
 
-#train.n<-train;train.n$schade<- as.factor(train.n$schade)
-#test.n<-test;test.n$schade<- as.factor(test.n$schade)
+## Aggregation
 
-nnet<- nnet(fmla,data=train,size=10,decay = 0.001,
-            maxit = 100)
-
-test$nnet_res<- predict(nnet,test,typ="class")
-
-confusionMatrix(test$schade,test$nnet_res)
-
-table(test$nnet_res)
-plot(nnet)
-varImpPlot(rf)
-summary(rf)
-
-```
-
-SVM (werkt nog niet goed)
-
-```{r svm}
-####svm
-library(e1071)
-
-svm <- svm(fmla, train)#, probability=TRUE, cost = 100, gamma = 1)
-
-test$svm_res<- predict(svm,test,na.action = na.pass)
-
-confusionMatrix(test$schade,test$svm_res)
-summary(svm)
-
-```
-
-
-
-
-
-
-
-
-```
+This script aggregates the r.int.tot data to rows that represent the lifetime of a segment until damage occurs. In this way, the age at which damage occurs could be learned using ML.
