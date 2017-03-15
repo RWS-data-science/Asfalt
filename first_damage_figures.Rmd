@@ -5,10 +5,12 @@ date: "19 december 2016"
 output: html_document
 ---
 
-```{r setup, include=FALSE,cache=T}
-knitr::opts_chunk$set(echo = TRUE)
-load("data/r_int_tot.RData")
-r_eerste_schade<- r.int.tot[r.int.tot$eerste.schade==1,]
+```{r setup, include=FALSE,cache=F}
+knitr::opts_chunk$set(echo = TRUE,cache = T,warning = F,message = F)
+#load("data/r_int_tot.RData")
+#r_eerste_schade<- r.int.tot[which(r.int.tot$eerste.schade==1),]
+load("data/raf_tot.RData")
+r_eerste_schade<- raf_tot[which(raf_tot$eerste.schade==1),]
 
 ```
 
@@ -16,7 +18,7 @@ r_eerste_schade<- r.int.tot[r.int.tot$eerste.schade==1,]
 
 The figure below shows the distribution of years after which the first raveling damage of pavement layers is observed. Each observation corresponds with a 100 m pavement section.
 
-```{r age,cache=T,warning=F}
+```{r age}
 library(ggplot2)
 ggplot(r_eerste_schade,aes(x=eerste.schade.leeftijd))+geom_histogram(col="black",fill="cyan4",binwidth = 1)+
   xlab("Age (y)")+ylab("Number of pavement sections")+ggtitle("Years to first damage")
@@ -25,33 +27,50 @@ ggplot(r_eerste_schade,aes(x=eerste.schade.leeftijd))+geom_histogram(col="black"
 ## Per district and geographically
 
 
-```{r district,cache=T}
+```{r district}
 ggplot(r_eerste_schade,aes(x=eerste.schade.leeftijd))+geom_histogram(col="black",fill="cyan4",binwidth = 1)+
   xlab("Age (y)")+ylab("Number of pavement sections")+ggtitle("Years to first damage per district")+facet_wrap(~district)
 
-
 ##Plot leeftijden op kaart
-library(meteo)
+library(leaflet)
 library(rgdal)
-data("NLpol")
+library(RColorBrewer)
 
+r.shape<- r_eerste_schade[complete.cases(r_eerste_schade$x),]
+coordinates(r.shape)<- ~x+y
+wgs<- CRS("+init=epsg:4326")
+proj_rd<-  CRS("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +no_defs")
+proj4string(r.shape)<- proj_rd
+r.shape<- spTransform(r.shape,wgs)
+
+# pal <-colorQuantile(c("#B2FF66","#66CC00","#4C9900","#336600","#193300"),
+#                     NULL, n = 5, na.color="#FFFFFF")
+# 
+# m <- leaflet(r.shape) %>%
+#   addTiles() %>%  # Add default OpenStreetMap map tiles
+#   addCircles(weight=1,fillColor = ~pal(eerste.schade.leeftijd),fill=T)
+# m
+
+
+library(meteo)
+data("NLpol")
 NLpol_f= fortify(NLpol)
 coordinates(NLpol_f)<- ~long+lat
 proj4string(NLpol_f)<- CRS("+init=epsg:4326")
-proj_rd<-  CRS("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +no_defs")
+
 NLpol_f<- spTransform(NLpol_f,proj_rd)
 NLpol_f<- as.data.frame(NLpol_f)
 
-
 ggplot(NLpol_f, aes(x = long, y = lat,group=group))+geom_polygon(colour="black",fill="white")+
-  geom_point(data=r_eerste_schade,aes(x=x,y=y,group=eerste.schade.leeftijd,colour=eerste.schade.leeftijd,na.rm=T),size=0.8)+
-  scale_colour_gradientn(colours=c("red","orange","yellow","green"),limits=c(1,15),name="Age of first damage")
+  geom_point(data=r_eerste_schade,aes(x=x,y=y,group=eerste.schade.leeftijd,colour=eerste.schade.leeftijd,na.rm=T),size=0.8)+scale_colour_gradientn(colours=c("red","orange","yellow","green"),limits=c(1,15),name="Age of first damage")
+
+
 
 
 ```
 
 ## Years to first damage vs other variables
-```{r variables,warning=F}
+```{r variables}
 library(ggplot2)
 ##boxplots van leeftijden per bodemgebruik
 d<- ggplot(r_eerste_schade,aes(x=bodem))+geom_bar()
@@ -70,7 +89,7 @@ grid.arrange(d1,d)
 a<-ggplot(r_eerste_schade,aes(x=DEKLAAGSOORT,y=eerste.schade.leeftijd,fill=DEKLAAGSOORT))+geom_boxplot()+ylab("Age first damage")+guides(fill=F)+
   xlab("Pavement type")
 
-b<- ggplot(r_eerste_schade,aes(x=DEKLAAGSOORT))+geom_bar()+ylab("Number of pavement sections")+
+b<- ggplot(r_eerste_schade,aes(x=DEKLAAGSOORT))+geom_bar()+
   xlab("Pavement type")
 
 grid.arrange(a,b)
@@ -81,6 +100,9 @@ grid.arrange(a,b)
 ggplot(r_eerste_schade,aes(x=cat,y=eerste.schade.leeftijd,fill=cat))+geom_boxplot()+ylab("Age first damage")+guides(fill=F)+  xlab("Network category")
 
 
+#####in-uitvoeg###
+
+ggplot(r_eerste_schade,aes(x=afst.in.uitvoeg,y=eerste.schade.leeftijd))+geom_jitter(alpha=0.4,size=0.8,col="grey")+stat_smooth()+ylab("Age first damage")+xlab("Distance to nearest entry/exit")
 
 
 ######bermgegevens#####
@@ -99,22 +121,61 @@ f2<- ggplot(r_eerste_schade,aes(x=kunstwerk,y=eerste.schade.leeftijd,fill=kunstw
 grid.arrange(f1,f2,heights=c(0.3,0.7))
 
 
+##files
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=filezwaarte_2010_2015))+ geom_jitter(alpha=0.6,size=0.8,col="blue")+
+  stat_smooth()+ggtitle("Traffic jams")+
+  annotate("text", x = 90000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$filezwaarte_2010_2015,use = "pairwise.complete.obs"),2)))
+
 
 ##INWEVA2014
 
 #gem
-ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_al))+ geom_point(alpha=0.6,size=0.8,col="cyan4")+
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_al))+ geom_jitter(alpha=0.6,size=0.8,col="cyan4")+
   stat_smooth()+ggtitle("Average daily traffic intensity all categories")+
   annotate("text", x = 90000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$Inw2014_Werkdag_etmaal_al,use = "pairwise.complete.obs"),2)))
 
 
-ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_L3))+ geom_point(alpha=0.4,size=0.8,col="orange")+
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=Inw2014_Werkdag_etmaal_L3))+ geom_jitter(alpha=0.4,size=0.8,col="orange")+
 #geom_bar(stat="identity",fill="orange",alpha=0.2)
   stat_smooth()+ggtitle("Average daily traffic intensity cat L3")+
   annotate("text", x = 9000, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$Inw2014_Werkdag_etmaal_L3,use = "pairwise.complete.obs"),2)))
 
-#test
+##weersomstandigheden tijdens aanleg
 
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=aanleg.FG))+
+  geom_jitter(alpha=0.4,size=0.8)+
+  stat_smooth()+ggtitle("Average wind speed on construction date")+xlab("Wind speed [m/s]")+ylab("Age first damage")+  annotate("text", x = 9, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$aanleg.FG,use = "pairwise.complete.obs"),2)))
+
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=aanleg.TG))+
+  geom_jitter(alpha=0.4,size=0.8)+
+  stat_smooth()+ggtitle("Average temperature on construction date")+xlab("Temperature [C]")+ylab("Age first damage")+
+    annotate("text", x = 20, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$aanleg.TG,use = "pairwise.complete.obs"),2)))
+
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=aanleg.RH))+
+  geom_jitter(alpha=0.4,size=0.8)+
+  stat_smooth()+ggtitle("24-h rainfall depth on construction date")+xlab("Rainfall [mm]")+ylab("Age first damage")+
+    annotate("text", x = 30, y = 20, hjust=0,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$aanleg.RH,use = "pairwise.complete.obs"),2)))
+
+
+##Bomen
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=t_num50))+
+  geom_jitter(alpha=0.4,size=0.8,col="darkgreen")+
+  stat_smooth()+ggtitle("Number of trees within 50m")+xlab("Number of trees")+ylab("Age first damage")+
+    annotate("text", x = 200, y = 20, hjust=1,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$t_num50,use = "pairwise.complete.obs"),2)))
+
+##schaduw
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=tot_shadow))+
+  geom_jitter(alpha=0.4,size=0.8,col="darkgrey")+
+  stat_smooth()+ggtitle("Shadow from trees and buildings")+xlab("Area subject to shadow from trees or buildings")+ylab("Age first damage")+
+    annotate("text", x = 200000, y = 20, hjust=1,label = paste("r =",round(cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade$tot_shadow,use = "pairwise.complete.obs"),2)))
+
+#cor(r_eerste_schade$eerste.schade.leeftijd,r_eerste_schade[,73:84],use="pairwise.complete.obs")
+
+#height
+ggplot(r_eerste_schade,aes(y=eerste.schade.leeftijd,x=delta_dek_minus_groen))+
+  geom_jitter(alpha=0.4,size=0.8,col="purple")+
+  stat_smooth()+ggtitle("Height difference road surface - berm \n Highway A4 only")+xlab("Height difference [m]")+ylab("Age first damage")+
+    annotate("text", x = 7, y = 20, hjust=1,label = paste("r =", round(cor(r_eerste_schade$eerste.schade.leeftijd, r_eerste_schade$delta_dek_minus_groen,use="pairwise.complete.obs"),2)))
 
 ```
 
