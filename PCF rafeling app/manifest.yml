@@ -1,0 +1,7 @@
+applications:
+ - name: rafeling_app
+   buildpack: git://github.com/beibeiyang/cf-buildpack-r.git
+   command: R --no-save --gui-none < /app/startscript.R
+   instances: 1
+   memory: 4G
+   

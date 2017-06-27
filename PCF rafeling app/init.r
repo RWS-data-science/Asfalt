@@ -1,0 +1,11 @@
+install.packages("shiny", dependencies = TRUE)
+install.packages("leaflet", dependencies = TRUE)
+install.packages("RColorBrewer", dependencies = TRUE)
+install.packages("shinydashboard", dependencies = TRUE)
+install.packages("dplyr", dependencies = TRUE)
+install.packages("DT", dependencies = TRUE)
+install.packages("ggplot2", dependencies = TRUE)
+install.packages("gridExtra", dependencies = TRUE)
+#install.packages("caret", dependencies = TRUE)
+
+options(device='cairo')
